@@ -8,7 +8,7 @@ import java.util.Scanner;
  * F(n)=F(n-1) + F(n-2)
  * @author MTee
  */
-public class tinhGiaTriSoFibonacci 
+public class TinhGiaTriSoFibonacci 
 {
     public static void main(String[] args) {
         int n;

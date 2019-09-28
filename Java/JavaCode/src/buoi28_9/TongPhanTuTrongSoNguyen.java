@@ -8,7 +8,7 @@ import java.util.Scanner;
  * VD 23456 = 2+3+4+5+6
  * @author MTee
  */
-public class tongPhanTuTrongSoNguyen 
+public class TongPhanTuTrongSoNguyen 
 {
     public static void main(String[] args) {
         int SoNguyen = 0, Tong = 0, tam;
