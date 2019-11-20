@@ -28,8 +28,6 @@ public class TimSoLonThuHaiTrongMang
       
   }
     
-    
-    
     public static void nhapMang(int mangSoNguyen[],int sophantu)
     {
         Scanner input = new Scanner(System.in);
