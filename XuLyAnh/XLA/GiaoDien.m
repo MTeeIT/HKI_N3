@@ -1,0 +1,495 @@
+function varargout = GiaoDien(varargin)
+% GIAODIEN MATLAB code for GiaoDien.fig
+%      GIAODIEN, by itself, creates a new GIAODIEN or raises the existing
+%      singleton*.
+%
+%      H = GIAODIEN returns the handle to a new GIAODIEN or the handle to
+%      the existing singleton*.
+%
+%      GIAODIEN('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in GIAODIEN.M with the given input arguments.
+%
+%      GIAODIEN('Property','Value',...) creates a new GIAODIEN or raises the
+%      existing singleton*.  Starting from the left, property value pairs are
+%      applied to the GUI before GiaoDien_OpeningFcn gets called.  An
+%      unrecognized property name or invalid value makes property application
+%      stop.  All inputs are passed to GiaoDien_OpeningFcn via varargin.
+%
+%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
+%      instance to run (singleton)".
+%
+% See also: GUIDE, GUIDATA, GUIHANDLES
+
+% Edit the above text to modify the response to help GiaoDien
+
+% Last Modified by GUIDE v2.5 13-Jan-2020 13:22:06
+
+% Begin initialization code - DO NOT EDIT
+gui_Singleton = 1;
+gui_State = struct('gui_Name',       mfilename, ...
+                   'gui_Singleton',  gui_Singleton, ...
+                   'gui_OpeningFcn', @GiaoDien_OpeningFcn, ...
+                   'gui_OutputFcn',  @GiaoDien_OutputFcn, ...
+                   'gui_LayoutFcn',  [] , ...s
+                   'gui_Callback',   []);
+if nargin && ischar(varargin{1})
+    gui_State.gui_Callback = str2func(varargin{1});
+end
+
+if nargout
+    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+else
+    gui_mainfcn(gui_State, varargin{:});
+end
+% End initialization code - DO NOT EDIT
+
+
+% --- Executes just before GiaoDien is made visible.
+function GiaoDien_OpeningFcn(hObject, ~, handles, varargin)
+% This function has no output args, see OutputFcn.
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% varargin   command line arguments to GiaoDien (see VARARGIN)
+
+% Choose default command line output for GiaoDien
+handles.output = hObject;
+
+% Update handles structure
+guidata(hObject, handles);
+
+% UIWAIT makes GiaoDien wait for user response (see UIRESUME)
+% uiwait(handles.figure1);
+
+
+% --- Outputs from this function are returned to the command line.
+function varargout = GiaoDien_OutputFcn(hObject, eventdata, handles) 
+% varargout  cell array for returning output args (see VARARGOUT);
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Get default command line output from handles structure
+varargout{1} = handles.output;
+
+
+% --- Executes on button press in Select_IM.
+function Select_IM_Callback(hObject, eventdata, handles)
+% hObject    handle to Select_IM (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% --- Executes on button press in Load_Image.
+global img;
+[file, path] = uigetfile({'*.jpg';'*.png';'*.*';});
+full = strcat(path, file);
+img = imread(full);
+axes(handles.axes1);
+imshow(img);
+set(handles.path, 'string', path);
+
+% --- Executes on button press in Process_Image.
+function Process_Image_Callback(hObject, ~, handles)
+%Use handles structure to recall the selected file
+selectedFile = handles.selectedFile;
+%Do Image Processing here
+
+% --- Executes on button press in pushbutton5.
+function pushbutton5_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+tic
+global img;
+I = rgb2gray(img);
+
+
+%BW
+level = graythresh(I);
+I3= im2bw(I, level);
+
+[dong, cot] = size(I3);
+set(handles.Heightbox,'string', dong);
+set(handles.Widthbox,'string', cot);
+nhan = double(0);
+for i=1:dong
+    for j=1:cot
+        nhan = nhan + (double(I(i, j)) * double(I3(i, j)));
+    end
+end
+notMask = nhan / (dong * cot);
+set(handles.notMask, 'string', notMask);
+%Euler
+eul = bweuler(I3,4);
+set(handles.Euler,'string', eul);
+
+
+%mask1
+I5 = edge(I3,'Prewitt');
+
+Premask = double(0);
+for i=1:dong
+    for j=1:cot
+        Premask = Premask + (double(I(i, j)) * double(I5(i, j)));
+    end
+end
+mask1 = Premask / (dong * cot);
+set(handles.mask1, 'string', mask1);
+
+%Canny
+I4= edge(I3,'Canny');
+Canmask = double(1);
+for i=1:dong
+    for j=1:cot
+        Canmask = Canmask + (double(I(i, j)) * double(I4(i, j)));
+    end
+end
+mask2 = Canmask / (dong * cot);
+set(handles.mask2, 'string', mask2);
+
+
+% % Tuong quan tung anhf
+A1 = imread('500000.jpg');
+R = corr2img(I,A1);
+ set(handles.Correlation,'string',R );
+
+
+% %train
+I=img;
+load('features.mat');
+
+soAnh = 9;
+soAnhCuaMotAnh = 2;
+
+%tap train
+for i=1:soAnh
+    for j=1:soAnhCuaMotAnh
+        k=5;
+        row = (i-1)*2+j;
+        row_fea = fea(row, :);
+        img_fea = reshape(row_fea, 1, 910000);
+        if (i == 1) && (j==1)
+            train_set = img_fea;
+            idx_train = row;
+        else
+            train_set = [train_set; img_fea];
+            idx_train = [idx_train; row];
+        end
+    end
+end
+
+    x_test = int32(chuyen1dong(I(:,:,1)));
+    x_test = repmat(x_test, soAnh*soAnhCuaMotAnh, 1);
+    dist = x_test - train_set;
+    euclid_dist = sqrt(sum(dist.^2,2));
+    [sort_value, rank_idx] = sort(euclid_dist);
+    knn = uint8(3);
+    %lay 15 kq nho nhat
+
+    predict_labels = gnd(rank_idx(1:knn));
+    %dem so lan khop hinh nhieu nhat
+   
+    %tim so hinh xuat hien nhieu nhat
+    max = 0;
+    for k=1:knn
+        x = predict_labels(k);
+        max_replace = 0;
+        for j=1:knn
+            if x == predict_labels(j)
+                max_replace = max_replace + 1;
+            end
+        end
+        
+        if(max_replace > max)
+            max = max_replace;
+            max_value = x;
+        end
+    end
+    
+    nameLogo = {'1000', '2000', '5000', '10000', '20000', '50000', '100000', '200000', '500000'};
+    
+    predict_label = max_value;
+    viTri = (4* (max_value-1) + 1);   
+    
+    filename=strcat(char(nameLogo(max_value)),'.jpg');  
+    fprintf('%s',filename);
+%     A1 = imread(filename);
+% 
+%     R =  corr2img(I,A1);
+   % set(handles.Correlation,'string',R );
+    axes(handles.imgKQ);
+    imshow(A1);
+    
+    
+    
+    timeElapsed = toc;
+
+set(handles.Time,'string',timeElapsed);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+
+%     ImgT = imresize(fea(viTri, :));
+%     rgbImageTarget = uint8(cat(3, ImgT, ImgT, ImgT));
+
+
+    %subplot(5,2,((i * 2) - 1)); image(reshape(fea(idx_test(i),:), 32, 32));
+    %subplot(5,2,i * 2); image(reshape(fea(max_value,:), 32, 32));
+
+
+
+
+
+
+
+
+% --- Executes on button press in Close_bt.
+function Close_bt_Callback(~, eventdata, handles)
+% hObject    handle to Close_bt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+
+function Heightbox_Callback(hObject, eventdata, handles)
+% hObject    handle to Heightbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of Heightbox as text
+%        str2double(get(hObject,'String')) returns contents of Heightbox as a double
+
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function Heightbox_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Heightbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function Widthbox_Callback(hObject, eventdata, handles)
+% hObject    handle to Widthbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of Widthbox as text
+%        str2double(get(hObject,'String')) returns contents of Widthbox as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Widthbox_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Widthbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function notMask_Callback(hObject, eventdata, handles)
+% hObject    handle to notMask (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of notMask as text
+%        str2double(get(hObject,'String')) returns contents of notMask as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function notMask_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to notMask (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function mask1_Callback(hObject, eventdata, handles)
+% hObject    handle to mask1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of mask1 as text
+%        str2double(get(hObject,'String')) returns contents of mask1 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function mask1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to mask1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function mask2_Callback(hObject, eventdata, handles)
+% hObject    handle to mask2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of mask2 as text
+%        str2double(get(hObject,'String')) returns contents of mask2 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function mask2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to mask2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function Euler_Callback(hObject, eventdata, handles)
+% hObject    handle to Euler (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of Euler as text
+%        str2double(get(hObject,'String')) returns contents of Euler as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Euler_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Euler (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function Correlation_Callback(hObject, eventdata, handles)
+% hObject    handle to Correlation (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of Correlation as text
+%        str2double(get(hObject,'String')) returns contents of Correlation as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Correlation_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Correlation (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function Time_Callback(hObject, eventdata, handles)
+% hObject    handle to Time (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of Time as text
+%        str2double(get(hObject,'String')) returns contents of Time as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Time_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Time (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function path_Callback(hObject, eventdata, handles)
+% hObject    handle to path (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of path as text
+%        str2double(get(hObject,'String')) returns contents of path as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function path_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to path (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit2_Callback(hObject, eventdata, handles)
+% hObject    handle to edit2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit2 as text
+%        str2double(get(hObject,'String')) returns contents of edit2 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
